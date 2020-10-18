@@ -1,0 +1,17 @@
+(module (agena serve)
+        (simple-handler read-request)
+
+  (import (scheme)
+          (chicken base)
+          (chicken module)
+          (only (chicken io) read-line)
+          (only (chicken pathname) make-pathname pathname-extension)
+          (only (chicken process-context) current-directory)
+          (only (chicken file posix) regular-file?)
+          (only (srfi 13) string-join)
+          (fmt)
+          (sendfile)
+          (uri-generic))
+
+  (include "mime-types.scm")
+  (include "agena-serve-impl.scm"))
