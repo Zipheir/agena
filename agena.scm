@@ -93,3 +93,12 @@
 
 (define root-path
   (make-parameter (make-pathname (current-directory) "root")))
+
+;;;; Server
+
+(define (run)
+ (let lp ((line (read-request)))
+   (simple-handler (uri-reference line))
+   (lp (read-request))))
+
+(run)
