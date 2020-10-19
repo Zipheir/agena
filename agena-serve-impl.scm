@@ -1,3 +1,17 @@
+(import (scheme)
+        (chicken base)
+        (chicken module)
+        (only (chicken io) read-line)
+        (only (chicken pathname) make-pathname pathname-extension)
+        (only (chicken process-context) current-directory)
+        (only (chicken file posix) regular-file?)
+        (only (srfi 13) string-join)
+        (fmt)
+        (sendfile)
+        (uri-generic))
+
+(include "mime-types.scm")
+
 ;; Snarfed from Kooda's geminid.
 (define status-codes
   '((input                       . 10)
