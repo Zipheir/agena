@@ -11,6 +11,8 @@ CSCFLAGS = -O0 -d2 -v -local
 
 all: agena
 
+agena: agena.scm mime-types.scm
+
 .scm:
 	csc $(CSCFLAGS) -o $@ $<
 
