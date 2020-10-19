@@ -6,11 +6,15 @@
         (only (chicken process-context) current-directory)
         (only (chicken file posix) regular-file?)
         (only (srfi 13) string-join)
+        (srfi 4)
         (fmt)
-        (sendfile)
         (uri-generic))
 
 (include "mime-types.scm")
+
+(define buffer-size 4096)
+
+;;;; Gemini
 
 ;; Snarfed from Kooda's geminid.
 (define status-codes
@@ -62,12 +66,21 @@
       (serve-regular-file path)
       (write-response-header 'not-found "File not found")))
 
+;; Write all data from port to the current output.
+(define (write-all port)
+  (let* ((buffer (make-u8vector buffer-size))
+         (read-bytes (lambda () (read-u8vector! #f buffer port))))
+    (let lp ((k (read-bytes)))
+      (write-u8vector buffer (current-output-port) 0 k)
+      (unless (< k buffer-size)
+        (lp (read-bytes))))))
+
 (define (serve-regular-file path)
   (write-response-header 'success
                          (extension-mime-type (pathname-extension path)))
-  (let ((in (open-input-file path)))
-    (sendfile in (current-output-port))
-    (close-input-port in)))
+  (let ((port (open-input-file path)))
+    (write-all port)
+    (close-input-port port)))
 
 (define (simple-handler uri)
   (if (not (eqv? (uri-scheme uri) 'gemini))
