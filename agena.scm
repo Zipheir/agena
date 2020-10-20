@@ -7,7 +7,7 @@
         (only (chicken io) read-line write-string)
         (only (chicken pathname) make-pathname pathname-extension)
         (only (chicken process-context) current-directory)
-        (only (chicken file posix) regular-file?)
+        (only (chicken file posix) regular-file? directory?)
         (only (srfi 13) string-null? string-join)
         (srfi 4)
         (fmt)
@@ -85,14 +85,14 @@
       (flush-output)
       #;(close-output-port (current-output-port)))))
 
+(define (serve-failure path)
+  (write-log "serve file failed" path)
+  (write-response-header 'not-found "File not found"))
+
 (define (serve-file ps)
   (let ((path (if (null? ps)
                   (root-path)
-                  (string-join (cons (root-path) (cdr ps)) "/")))
-        (serve-failure
-         (lambda (path)
-           (write-log "serve file failed" path)
-           (write-response-header 'not-found "File not found"))))
+                  (string-join (cons (root-path) (cdr ps)) "/"))))
     (cond ((regular-file? path) (serve-regular-file path))
           ((directory? path)
            (let ((path* (make-pathname path "index.gmi")))
@@ -111,11 +111,15 @@
         (lp (read-bytes))))))
 
 (define (serve-regular-file path)
-  (write-response-header 'success
-                         (extension-mime-type (pathname-extension path)))
-  (let ((port (open-input-file path)))
-    (write-all port)
-    (close-input-port port)))
+  (call-with-current-continuation
+   (lambda (k)
+     (let ((port
+            (condition-case (open-input-file path)
+              ((exn file) (serve-failure path) (k #f)))))
+       (write-response-header 'success
+                              (extension-mime-type (pathname-extension path)))
+       (write-all port)
+       (close-input-port port)))))
 
 (define (simple-handler uri)
   (if (not (eqv? (uri-scheme uri) 'gemini))
