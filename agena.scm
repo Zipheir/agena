@@ -80,7 +80,7 @@
     (fmt #t code " " meta "\r\n")
     (unless (and (>= code 20) (< code 30))
       (flush-output)
-      (close-output-port (current-output-port)))))
+      #;(close-output-port (current-output-port)))))
 
 (define (serve-file path)
   (cond ((regular-file? path) (serve-regular-file path))
