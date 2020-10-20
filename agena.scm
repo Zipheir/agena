@@ -85,11 +85,21 @@
       (flush-output)
       #;(close-output-port (current-output-port)))))
 
-(define (serve-file path)
-  (cond ((regular-file? path) (serve-regular-file path))
-        (else
-         (write-log "unhandled file requested" path)
-         (write-response-header 'not-found "File not found"))))
+(define (serve-file ps)
+  (let ((path (if (null? ps)
+                  (root-path)
+                  (string-join (cons (root-path) (cdr ps)) "/")))
+        (serve-failure
+         (lambda (path)
+           (write-log "serve file failed" path)
+           (write-response-header 'not-found "File not found"))))
+    (cond ((regular-file? path) (serve-regular-file path))
+          ((directory? path)
+           (let ((path* (make-pathname path "index.gmi")))
+             (if (file-readable? path*)
+                 (serve-regular-file path*)
+                 (serve-failure path*))))
+          (else (serve-failure path)))))
 
 ;; Write all data from port to the current output.
 (define (write-all port)
@@ -113,13 +123,7 @@
        (write-log "unhandled protocol" (uri-scheme uri))
        (write-response-header 'proxy-request-refused
                               "Unhandled protocol"))
-      (serve-file (make-path (uri-path uri)))))
-
-(define (make-path ps)
-  (cond ((or (null? ps)
-             (and (= (length ps) 2) (string-null? (cadr ps))))
-         (string-append (root-path) "/index.gmi"))
-        (else (string-join (cons (root-path) (cdr ps)) "/"))))
+      (serve-file (uri-path uri))))
 
 (define root-path
   (make-parameter (make-pathname (current-directory) "root")))
