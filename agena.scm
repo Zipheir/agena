@@ -1,6 +1,9 @@
 (import (scheme)
         (chicken base)
+        (chicken condition)
         (chicken module)
+        (chicken time)
+        (chicken time posix)
         (only (chicken io) read-line)
         (only (chicken pathname) make-pathname pathname-extension)
         (only (chicken process-context) current-directory)
@@ -13,6 +16,18 @@
 (include "mime-types.scm")
 
 (define buffer-size 4096)
+
+(define log-timestamp-format "%Y-%m-%d %H:%M:%SZ")
+
+;;;; Logging
+
+(define (write-log msg . objs)
+  (let* ((tv (seconds->utc-time (current-seconds)))
+         (stamp (time->string tv log-timestamp-format)))
+    (parameterize ((current-output-port (current-error-port)))
+      (if (pair? objs)
+          (fmt #t "[" stamp "] " msg " | irritants: " objs nl)
+          (fmt #t "[" stamp "] " msg nl)))))
 
 ;;;; Gemini
 
@@ -52,22 +67,26 @@
 (define (read-request)
   (display "listening...\n")
   (let ((line (read-line)))
-    (when (eof-object? line)
-      (error "empty request"))
-    (when (> (string-length line) 1024)
-      (error "request too long" line))
-    line))
+    (cond ((eof-object? line)
+           (write-log "empty request")
+           #f)
+          ((> (string-length line) 1024)
+           (write-log "overlong request")
+           #f)
+          (else line))))
 
 (define (write-response-header status meta)
-  (fmt #t (status->integer status) " " meta "\r\n")
-  (unless (and (>= status 20) (< status 30))
-    (flush-output)
-    (close-output-port (current-output-port))))
+  (let ((code (status->integer status)))
+    (fmt #t code " " meta "\r\n")
+    (unless (and (>= code 20) (< code 30))
+      (flush-output)
+      (close-output-port (current-output-port)))))
 
 (define (serve-file path)
-  (if (regular-file? path)
-      (serve-regular-file path)
-      (write-response-header 'not-found "File not found")))
+  (cond ((regular-file? path) (serve-regular-file path))
+        (else
+         (write-log "unhandled file requested" path)
+         (write-response-header 'not-found "File not found"))))
 
 ;; Write all data from port to the current output.
 (define (write-all port)
@@ -87,8 +106,10 @@
 
 (define (simple-handler uri)
   (if (not (eqv? (uri-scheme uri) 'gemini))
-      (write-response-header 'proxy-request-refused
-			     "Unhandled protocol")
+      (begin
+       (write-log "unhandled protocol" (uri-scheme uri))
+       (write-response-header 'proxy-request-refused
+                              "Unhandled protocol"))
       (serve-file (make-path (cdr (uri-path uri))))))
 
 (define (make-path ps)
@@ -101,7 +122,8 @@
 
 (define (run)
  (let lp ((line (read-request)))
-   (simple-handler (uri-reference line))
+   (cond ((and line (uri-reference line)) => simple-handler)
+         (else #f))
    (lp (read-request))))
 
 (run)
