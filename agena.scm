@@ -59,7 +59,10 @@
     line))
 
 (define (write-response-header status meta)
-  (fmt #t (status->integer status) " " meta "\r\n"))
+  (fmt #t (status->integer status) " " meta "\r\n")
+  (unless (and (>= status 20) (< status 30))
+    (flush-output)
+    (close-output-port (current-output-port))))
 
 (define (serve-file path)
   (if (regular-file? path)
