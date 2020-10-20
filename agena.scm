@@ -149,6 +149,6 @@
 (define (run)
   (let* ((listener (tcp-listen gemini-listen-port))
          (serve (make-tcp-server listener handle-requests)))
-    (serve "gopherd")))
+    (serve)))
 
 (run)
