@@ -2,6 +2,7 @@
         (chicken base)
         (chicken condition)
         (chicken module)
+        (only (chicken tcp) tcp-listen)
         (chicken time)
         (chicken time posix)
         (only (chicken io) read-line write-string)
@@ -11,11 +12,14 @@
         (only (srfi 13) string-null? string-join)
         (srfi 4)
         (fmt)
+        (tcp-server)
         (uri-generic))
 
 (include "mime-types.scm")
 
 (define buffer-size 4096)
+
+(define gemini-listen-port 1965)
 
 (define log-timestamp-format "%Y-%m-%d %H:%M:%SZ")
 
@@ -65,7 +69,6 @@
 
 ;; Read and validate a Gemini request.
 (define (read-request)
-  (display "listening...\n")
   (let ((line (read-line)))
     (cond ((eof-object? line)
            (write-log "empty request")
@@ -132,12 +135,20 @@
 (define root-path
   (make-parameter (make-pathname (current-directory) "root")))
 
+(define (handle-requests)
+  (let lp ()
+    (and-let* ((line (read-request))
+               (uri (uri-reference line)))
+      (simple-handler uri)
+      (lp)))
+  (close-input-port (current-input-port))
+  (close-output-port (current-output-port)))
+
 ;;;; Server
 
 (define (run)
- (let lp ((line (read-request)))
-   (cond ((and line (uri-reference line)) => simple-handler)
-         (else #f))
-   #;(lp (read-request))))
+  (let* ((listener (tcp-listen gemini-listen-port))
+         (serve (make-tcp-server listener handle-requests)))
+    (serve "gopherd")))
 
 (run)
