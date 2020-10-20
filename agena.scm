@@ -8,7 +8,7 @@
         (only (chicken pathname) make-pathname pathname-extension)
         (only (chicken process-context) current-directory)
         (only (chicken file posix) regular-file?)
-        (only (srfi 13) string-join)
+        (only (srfi 13) string-null? string-join)
         (srfi 4)
         (fmt)
         (uri-generic))
@@ -110,10 +110,13 @@
        (write-log "unhandled protocol" (uri-scheme uri))
        (write-response-header 'proxy-request-refused
                               "Unhandled protocol"))
-      (serve-file (make-path (cdr (uri-path uri))))))
+      (serve-file (make-path (uri-path uri)))))
 
 (define (make-path ps)
-  (string-join (cons (root-path) ps) "/"))
+  (cond ((or (null? ps)
+             (and (= (length ps) 2) (string-null? (cadr ps))))
+         (string-append (root-path) "/index.gmi"))
+        (else (string-join (cons (root-path) (cdr ps)) "/"))))
 
 (define root-path
   (make-parameter (make-pathname (current-directory) "root")))
@@ -124,6 +127,6 @@
  (let lp ((line (read-request)))
    (cond ((and line (uri-reference line)) => simple-handler)
          (else #f))
-   (lp (read-request))))
+   #;(lp (read-request))))
 
 (run)
