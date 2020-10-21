@@ -136,11 +136,9 @@
   (make-parameter (make-pathname (current-directory) "root")))
 
 (define (handle-requests)
-  (let lp ()
-    (and-let* ((line (read-request))
-               (uri (uri-reference line)))
-      (simple-handler uri)
-      (lp)))
+  (and-let* ((line (read-request))
+             (uri (uri-reference line)))
+    (simple-handler uri))
   (close-input-port (current-input-port))
   (close-output-port (current-output-port)))
 
