@@ -98,10 +98,7 @@
                   (string-join (cons (root-path) (cdr ps)) "/"))))
     (cond ((regular-file? path) (serve-regular-file path))
           ((directory? path)
-           (let ((path* (make-pathname path "index.gmi")))
-             (if (file-readable? path*)
-                 (serve-regular-file path*)
-                 (serve-failure path*))))
+           (serve-regular-file (make-pathname path "index.gmi")))
           (else (serve-failure path)))))
 
 ;; Write all data from port to the current output.
@@ -135,18 +132,17 @@
 (define root-path
   (make-parameter (make-pathname (current-directory) "root")))
 
-(define (handle-requests)
+(define (handle-request)
+  (write-log "got request")
   (and-let* ((line (read-request))
              (uri (uri-reference line)))
-    (simple-handler uri))
-  (close-input-port (current-input-port))
-  (close-output-port (current-output-port)))
+    (simple-handler uri)))
 
 ;;;; Server
 
 (define (run)
   (let* ((listener (tcp-listen gemini-listen-port))
-         (serve (make-tcp-server listener handle-requests)))
+         (serve (make-tcp-server listener handle-request)))
     (serve)))
 
 (run)
