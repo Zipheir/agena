@@ -8,6 +8,8 @@
         (only (chicken io) read-line write-string)
         (only (chicken pathname) make-pathname pathname-extension)
         (only (chicken process-context) current-directory)
+        (only (chicken process-context posix) user-information current-user-id
+                                              current-group-id)
         (only (chicken file posix) regular-file? directory?)
         (only (srfi 13) string-null? string-join)
         (srfi 4)
@@ -22,6 +24,8 @@
 (define gemini-listen-port 1965)
 
 (define log-timestamp-format "%Y-%m-%d %H:%M:%SZ")
+
+(define server-username "gemini")
 
 ;;;; Logging
 
@@ -142,7 +146,13 @@
 
 (define (run)
   (let* ((listener (tcp-listen gemini-listen-port))
-         (serve (make-tcp-server listener handle-request)))
+         (serve (make-tcp-server listener handle-request))
+         (user-info (user-information server-username)))
+    (if user-info
+        (begin   ; ugly generalized-set! stuff
+         (set! (current-user-id) (list-ref user-info 2))
+         (set! (current-group-id) (list-ref user-info 3)))
+        (error "couldn't get user information" server-username))
     (serve)))
 
 (run)
