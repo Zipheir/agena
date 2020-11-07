@@ -16,6 +16,7 @@
         (args)
         (fmt)
         (tcp-server)
+        ;(unveil)
         (uri-generic))
 
 (include "mime-types.scm")
