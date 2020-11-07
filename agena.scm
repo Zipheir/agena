@@ -24,8 +24,8 @@
 
 (define log-timestamp-format "%Y-%m-%d %H:%M:%SZ")
 
-(define server-uid #f)
-(define server-gid #f)
+(define server-uid 2)
+(define server-gid 2)
 
 ;;;; Logging
 
@@ -146,18 +146,18 @@
 (define (run root-path port)
   (let* ((listener (tcp-listen port))
          (serve (make-tcp-server listener (make-request-handler root-path))))
-    (and server-uid (set! (current-user-id) server-uid))
     (and server-gid (set! (current-group-id) server-gid))
+    (and server-uid (set! (current-user-id) server-uid))
     (serve)))
 
-(define (daemon-run)
-  (change-directory (root-path))
-  ;(unveil (root-path) "r")
+(define (daemon-run root-path port)
+  (change-directory root-path)
+  ;(unveil root-path "r")
   ;(unveil-lock)
   (file-creation-mode 0)
   (close-output-port (current-output-port))
   (close-input-port (current-input-port))
-  (run))
+  (run root-path port))
 
 (letrec* ((opts (list (args:make-option (D) #:none "Daemonize.")
                       (args:make-option (p) (#:required "<port>")
