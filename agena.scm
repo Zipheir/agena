@@ -96,10 +96,10 @@
   (write-log "serve file failed" path)
   (write-response-header 'not-found "File not found"))
 
-(define (serve-file ps)
+(define (serve-file root-path ps)
   (let ((path (if (null? ps)
-                  (root-path)
-                  (string-join (cons (root-path) (cdr ps)) "/"))))
+                  root-path
+                  (string-join (cons root-path (cdr ps)) "/"))))
     (cond ((regular-file? path) (serve-regular-file path))
           ((directory? path)
            (serve-regular-file (make-pathname path "index.gmi")))
@@ -125,28 +125,27 @@
        (write-all port)
        (close-input-port port)))))
 
-(define (simple-handler uri)
+(define (simple-handler root-path uri)
+  ;; TODO: Validate host.
   (if (not (eqv? (uri-scheme uri) 'gemini))
       (begin
        (write-log "unhandled protocol" (uri-scheme uri))
        (write-response-header 'proxy-request-refused
                               "Unhandled protocol"))
-      (serve-file (uri-path uri))))
+      (serve-file root-path (uri-path uri))))
 
-(define root-path
-  (make-parameter (make-pathname (current-directory) "root")))
-
-(define (handle-request)
-  (write-log "got request")
-  (and-let* ((line (read-request))
-             (uri (uri-reference line)))
-    (simple-handler uri)))
+(define (make-request-handler root-path)
+  (lambda ()
+    (write-log "got request")
+    (and-let* ((line (read-request))
+               (uri (uri-reference line)))
+      (simple-handler root-path uri))))
 
 ;;;; Server
 
-(define (run)
-  (let* ((listener (tcp-listen gemini-listen-port))
-         (serve (make-tcp-server listener handle-request)))
+(define (run root-path port)
+  (let* ((listener (tcp-listen port))
+         (serve (make-tcp-server listener (make-request-handler root-path))))
     (and server-uid (set! (current-user-id) server-uid))
     (and server-gid (set! (current-group-id) server-gid))
     (serve)))
@@ -172,12 +171,12 @@
                      (display (args:usage opts))
                      (exit 1)))))
   (let-values (((cli-opts operands) (args:parse (command-line-arguments) opts)))
-    (parameterize ((root-path (cond ((= (length operands) 1) (car operands))
-                                    (else (usage))))
-                   (listen-port (cond ((assv 'p cli-opts) => cdr)
-                                      (else 1965))))
+    (let ((root-path (cond ((= (length operands) 1) (car operands))
+                           (else (usage))))
+          (listen-port (cond ((assv 'p cli-opts) => cdr)
+                             (else 1965))))
       (cond ((assv 'D cli-opts)
              ;; TODO: Handle fork errors.
-             (process-fork daemon-run)
+             (process-fork (lambda () (daemon-run root-path listen-port)))
              (exit 0))
-            (else (run))))))
+            (else (run root-path listen-port))))))
