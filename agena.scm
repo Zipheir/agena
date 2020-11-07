@@ -22,8 +22,6 @@
 
 (define buffer-size 4096)
 
-(define gemini-listen-port 1965)
-
 (define log-timestamp-format "%Y-%m-%d %H:%M:%SZ")
 
 (define server-uid #f)
