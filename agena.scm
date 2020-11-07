@@ -5,7 +5,7 @@
         (only (chicken tcp) tcp-listen)
         (chicken time)
         (chicken time posix)
-        (only (chicken io) read-line)
+        (only (chicken io) read-line write-line)
         (only (chicken pathname) make-pathname pathname-extension)
         (chicken process)
         (chicken process-context)
