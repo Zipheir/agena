@@ -174,7 +174,10 @@
   (let-values (((cli-opts operands) (args:parse (command-line-arguments) opts)))
     (let ((root-path (cond ((= (length operands) 1) (car operands))
                            (else (usage))))
-          (listen-port (cond ((assv 'p cli-opts) => cdr)
+          (listen-port (cond ((assv 'p cli-opts) =>
+                              (lambda (p)
+                                (or (string->number (cdr p))
+                                    (error "invalid port" (cdr p)))))
                              (else 1965))))
       (cond ((assv 'D cli-opts)
              ;; TODO: Handle fork errors.
