@@ -97,10 +97,9 @@
   (write-log "serve file failed" path)
   (write-response-header 'not-found "File not found"))
 
-(define (serve-file root-path ps)
-  (let ((path (if (null? ps)
-                  root-path
-                  (string-join (cons root-path (cdr ps)) "/"))))
+(define (serve-file ps)
+  (let* ((raw-path (string-join (cdr ps) "/"))
+         (path (if (string=? raw-path "") "." path)))
     (cond ((regular-file? path) (serve-regular-file path))
           ((directory? path)
            (serve-regular-file (make-pathname path "index.gmi")))
@@ -133,7 +132,7 @@
        (write-log "unhandled protocol" (uri-scheme uri))
        (write-response-header 'proxy-request-refused
                               "Unhandled protocol"))
-      (serve-file root-path (uri-path uri))))
+      (serve-file (uri-path uri))))
 
 (define (make-request-handler root-path)
   (lambda ()
@@ -147,14 +146,14 @@
 (define (run root-path port)
   (let* ((listener (tcp-listen port))
          (serve (make-tcp-server listener (make-request-handler root-path))))
+    ;(unveil root-path "r")
+    ;(unveil-lock)
+    (change-directory root-path)
     (and server-gid (set! (current-group-id) server-gid))
     (and server-uid (set! (current-user-id) server-uid))
     (serve)))
 
 (define (daemon-run root-path port)
-  (change-directory root-path)
-  ;(unveil root-path "r")
-  ;(unveil-lock)
   (file-creation-mode 0)
   (close-output-port (current-output-port))
   (close-input-port (current-input-port))
