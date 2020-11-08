@@ -99,7 +99,7 @@
 
 (define (serve-file ps)
   (let* ((raw-path (string-join (cdr ps) "/"))
-         (path (if (string=? raw-path "") "." path)))
+         (path (if (string=? raw-path "") "." raw-path)))
     (cond ((regular-file? path) (serve-regular-file path))
           ((directory? path)
            (serve-regular-file (make-pathname path "index.gmi")))
@@ -125,7 +125,7 @@
        (write-all port)
        (close-input-port port)))))
 
-(define (simple-handler root-path uri)
+(define (simple-handler uri)
   ;; TODO: Validate host.
   (if (not (eqv? (uri-scheme uri) 'gemini))
       (begin
@@ -134,18 +134,17 @@
                               "Unhandled protocol"))
       (serve-file (uri-path uri))))
 
-(define (make-request-handler root-path)
-  (lambda ()
-    (write-log "got request")
-    (and-let* ((line (read-request))
-               (uri (uri-reference line)))
-      (simple-handler root-path uri))))
+(define (request-handler)
+  (write-log "got request")
+  (and-let* ((line (read-request))
+             (uri (uri-reference line)))
+    (simple-handler uri)))
 
 ;;;; Server
 
 (define (run root-path port)
   (let* ((listener (tcp-listen port))
-         (serve (make-tcp-server listener (make-request-handler root-path))))
+         (serve (make-tcp-server listener request-handler)))
     ;(unveil root-path "r")
     ;(unveil-lock)
     (change-directory root-path)
