@@ -13,6 +13,8 @@
         (chicken file posix)
         (only (srfi 13) string-null? string-join)
         (srfi 4)
+        (only (srfi 128) make-comparator string-hash)
+        (srfi 146 hash)
         (args)
         (fmt)
         (tcp-server)
@@ -62,11 +64,8 @@
     (certificate-not-authorised  . 61)
     (certificate-not-valid       . 62)))
 
-(define mime-type-fallback "application/octet-stream")
-
 (define (extension-mime-type ext)
-  (cond ((assoc ext mime-types) => cdr)
-        (else mime-type-fallback)))
+  (hashmap-ref/default mime-types ext "application/octet-stream"))
 
 (define (status->integer s)
   (cond ((assv s status-codes) => cdr)
