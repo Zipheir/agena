@@ -98,7 +98,7 @@
   (write-response-header 'not-found "File not found"))
 
 (define (serve-file ps)
-  (let* ((raw-path (string-join (cdr ps) "/"))
+  (let* ((raw-path (if (null? ps) "" (string-join (cdr ps) "/")))
          (path (if (string=? raw-path "") "." raw-path)))
     (cond ((regular-file? path) (serve-regular-file path))
           ((directory? path)
