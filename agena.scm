@@ -13,9 +13,8 @@
         (chicken file posix)
         (only (srfi 13) string-null? string-join)
         (srfi 4)
-        (only (srfi 69) string-hash)
         (only (srfi 128) make-comparator)
-        (srfi 146 hash)
+        (srfi 146)
         (args)
         (fmt)
         (tcp-server)
@@ -24,7 +23,7 @@
 
   ;; Replace me when SRFI 162 has been packaged.
 (define string-comparator
-  (make-comparator string? string=? string<? string-hash))
+  (make-comparator string? string=? string<? #f))
 
 (include "mime-types.scm")
 
@@ -49,7 +48,7 @@
 
 ;; Alist snarfed from Kooda's geminid.
 (define status-codes
-  (alist->hashmap
+  (alist->mapping
    string-comparator
    '(("input"                       . 10)
      ("sensitive-input"             . 11)
@@ -72,10 +71,10 @@
      ("certificate-not-valid"       . 62))))
 
 (define (extension-mime-type ext)
-  (hashmap-ref/default mime-types ext "application/octet-stream"))
+  (mapping-ref/default mime-types ext "application/octet-stream"))
 
 (define (status->integer s)
-  (hashmap-ref s status-codes (lambda () (error "unknown status" s))))
+  (mapping-ref s status-codes (lambda () (error "unknown status" s))))
 
 ;; Read and validate a Gemini request.
 (define (read-request)

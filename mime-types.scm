@@ -1,5 +1,5 @@
 (define mime-types
-    (alist->hashmap
+    (alist->mapping
      string-comparator
      '(("ez" . "application/andrew-inset")
        ("anx" . "application/annodex")
