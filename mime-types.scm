@@ -1,8 +1,4 @@
-
 (define mime-types
-  ;; Replace me when SRFI 162 has been packaged.
-  (let ((string-comparator
-         (make-comparator string? string=? string<? string-hash)))
     (alist->hashmap
      string-comparator
      '(("ez" . "application/andrew-inset")
@@ -586,4 +582,4 @@
        ("sisx" . "x-epoc/x-sisx-app")
        ("wrl" . "x-world/x-vrml")
        ("vrml" . "x-world/x-vrml")
-       ("vrm" . "x-world/x-vrml")))))
+       ("vrm" . "x-world/x-vrml"))))

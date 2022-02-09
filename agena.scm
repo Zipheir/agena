@@ -21,6 +21,10 @@
         ;(unveil)
         (uri-generic))
 
+  ;; Replace me when SRFI 162 has been packaged.
+(define string-comparator
+  (make-comparator string? string=? string<? string-hash))
+
 (include "mime-types.scm")
 
 (define buffer-size 4096)
