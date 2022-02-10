@@ -46,35 +46,34 @@
 
 ;;;; Gemini
 
-;; Alist snarfed from Kooda's geminid.
+;; Snarfed from Kooda's geminid.
 (define status-codes
-  (alist->mapping
-   string-comparator
-   '(("input"                       . 10)
-     ("sensitive-input"             . 11)
-     ("success"                     . 20)
-     ("redirect"                    . 30)
-     ("redirect-temporary"          . 30)
-     ("redirect-permanent"          . 31)
-     ("temporary-failure"           . 40)
-     ("server-unavailable"          . 41)
-     ("cgi-error"                   . 42)
-     ("proxy-error"                 . 43)
-     ("slow-down"                   . 44)
-     ("permanent-failure"           . 50)
-     ("not-found"                   . 51)
-     ("gone"                        . 52)
-     ("proxy-request-refused"       . 53)
-     ("bad-request"                 . 59)
-     ("client-certificate-required" . 60)
-     ("certificate-not-authorised"  . 61)
-     ("certificate-not-valid"       . 62))))
+  '((input                       . 10)
+    (sensitive-input             . 11)
+    (success                     . 20)
+    (redirect                    . 30)
+    (redirect-temporary          . 30)
+    (redirect-permanent          . 31)
+    (temporary-failure           . 40)
+    (server-unavailable          . 41)
+    (cgi-error                   . 42)
+    (proxy-error                 . 43)
+    (slow-down                   . 44)
+    (permanent-failure           . 50)
+    (not-found                   . 51)
+    (gone                        . 52)
+    (proxy-request-refused       . 53)
+    (bad-request                 . 59)
+    (client-certificate-required . 60)
+    (certificate-not-authorised  . 61)
+    (certificate-not-valid       . 62)))
 
 (define (extension-mime-type ext)
   (mapping-ref/default mime-types ext "application/octet-stream"))
 
 (define (status->integer s)
-  (mapping-ref s status-codes (lambda () (error "unknown status" s))))
+  (cond ((assv s status-codes) => cdr)
+        (else (error "unknown status" s))))
 
 ;; Read and validate a Gemini request.
 (define (read-request)
@@ -99,7 +98,7 @@
 
 (define (serve-failure path)
   (write-log "serve file failed" path)
-  (write-response-header "not-found" "File not found"))
+  (write-response-header 'not-found "File not found"))
 
 (define (serve-file ps)
   (let* ((raw-path (if (null? ps) "" (string-join (cdr ps) "/")))
@@ -124,7 +123,7 @@
      (let ((port
             (condition-case (open-input-file path)
               ((exn file) (serve-failure path) (k #f)))))
-       (write-response-header "success"
+       (write-response-header 'success
                               (extension-mime-type (pathname-extension path)))
        (write-all port)
        (close-input-port port)))))
@@ -134,7 +133,7 @@
   (if (not (eqv? (uri-scheme uri) 'gemini))
       (begin
        (write-log "unhandled protocol" (uri-scheme uri))
-       (write-response-header "proxy-request-refused"
+       (write-response-header 'proxy-request-refused
                               "Unhandled protocol"))
       (serve-file (uri-path uri))))
 
